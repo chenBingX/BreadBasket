@@ -3,6 +3,7 @@
 import pandas as pd
 import tensorflow as tf
 import datetime
+from sklearn.preprocessing import LabelEncoder
 
 
 def get_weekday(x):
@@ -25,6 +26,9 @@ def get_time_range(x):
                 return i
     return -1
 
+
+test_count = 5000
+
 # 读取数据
 datas = pd.read_csv('data/BreadBasket_DMS.csv')
 
@@ -39,12 +43,17 @@ features = ['Date', 'Time', 'Item']
 all_train_data = datas[features]
 print(all_train_data.head(5))
 
-print '-----------------------------'
+# print '-----------------------------'
 all_train_data['Date'] = all_train_data['Date'].map(lambda x: get_weekday(x))
 all_train_data['Time'] = all_train_data['Time'].map(lambda x: get_time_range(x))
+le_embarked = LabelEncoder()
+le_embarked.fit(all_train_data['Item'])
+all_train_data['Item'] = le_embarked.transform(all_train_data['Item'])
 
-print(all_train_data.head(5))
-
-
-
-
+total = all_train_data.shape[0]
+train_data = all_train_data[:total - test_count]
+test_data = all_train_data[total - test_count:]
+y = datas['Transaction']
+train_y = y[:total - test_count]
+test_y = y[total - test_count:]
+print(train_y.head())
