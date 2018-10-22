@@ -2,6 +2,7 @@
 import pandas as pd
 import tensorflow as tf
 import datetime
+import numpy as np
 
 
 def get_weekday(x):
@@ -12,7 +13,7 @@ def get_weekday(x):
 def get_float_time(x):
     date = datetime.datetime.strptime(x, '%Y-%m-%d')
     ftime = float(date.strftime('%Y%m%d'))
-    return ftime / 1e7
+    return ftime / 1e6
 
 
 def get_festival(x):
@@ -91,7 +92,6 @@ def get_time_quantum(x):
         return "凌晨"
 
 
-test_count = 5000
 pd.options.mode.chained_assignment = None
 # 读取数据
 datas = pd.read_csv('data/BreadBasket_DMS.csv')
@@ -142,7 +142,7 @@ datas['Time_Quantum'] = datas['Time_Quantum'].map(lambda x: get_time_quantum(x))
 # 随着日期的增长，交易量在增长，所以日期的大小会影响交易量
 datas['Date'] = datas['Date'].map(lambda x: get_float_time(x))
 datas['Time'] = datas['Time'].map(lambda x: get_time_range(x))
-datas['Transaction'] = datas['Transaction'].map(lambda x: (float(x) / 1000.))
+datas['Transaction'] = datas['Transaction'].map(lambda x: (float(x) / 1.))
 datas.info()
 print(datas.head())
 
@@ -158,23 +158,35 @@ print(ont_hot_data.head())
 
 
 print '--------------补齐---------------'
-null_count = 144 - ont_hot_data.shape[1] + 1
-for i in range(0, null_count):
-    name = 'null_' + str(i)
-    ont_hot_data[name] = datas['Date']
-    ont_hot_data[name] = ont_hot_data[name].map(lambda x: 0.)
-print(ont_hot_data.shape)
+# null_count = 144 - ont_hot_data.shape[1] + 1
+# null_count = 1
+# for i in range(0, null_count):
+#     name = 'null_' + str(i)
+#     ont_hot_data[name] = datas['Date']
+#     ont_hot_data[name] = ont_hot_data[name].map(lambda x: 0.)
+# print(ont_hot_data.shape)
 # -》 (21293, 145)
-print(ont_hot_data.head())
+# print(ont_hot_data.head())
 
+# print '--------------归一化---------------'
+# cache_transaction = ont_hot_data['Transaction']
+# ont_hot_data.drop('Transaction', axis=1, inplace=True)
+# ont_hot_data = ont_hot_data.apply(lambda x: (x - np.min(x)) / (np.max(x) - np.min(x)))
+# ont_hot_data = pd.concat([ont_hot_data, cache_transaction], axis=1)
+# print(ont_hot_data.head())
 
 # le_embarked = LabelEncoder()
 # le_embarked.fit(all_train_data['Item'])
 # all_train_data['Item'] = le_embarked.transform(all_train_data['Item'])
 
 print '--------------保存新数据---------------'
+# 测试数据集大小
+test_count = 6000
 train_count = ont_hot_data.shape[0] - test_count
+# 切割出训练数据集
 train_data = ont_hot_data[:train_count]
+# 切割出测试数据集
 test_data = ont_hot_data[train_count:]
+# 分别保存两个数据集
 train_data.to_csv('data/train_data.csv', index=False, header=True)
 test_data.to_csv('data/test_data.csv', index=False, header=True)

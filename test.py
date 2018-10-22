@@ -9,8 +9,10 @@ from cnn_utils import *
 # print(date)
 # print()
 
-a = weight_variable([10, 144])
-b = tf.reshape(a, [-1, 12, 12, 1])
+a = weight_variable([2, 135])
+a = tf.pad(a, [[0,0],[0,1]], "CONSTANT");
+b = tf.reshape(a, [-1, 17, 8, 1])
 with tf.Session() as sess:
     sess.run(tf.initialize_all_variables())
+    # print(sess.run()))
     print sess.run(b)
