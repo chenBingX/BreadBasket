@@ -1,103 +1,97 @@
 # coding=utf-8
-from cnn_utils import *
 
+import time
+from cnn_model import *
+from BBDATA import *
 
-class CnnBreadBasketNetwork:
-    def __init__(self):
-        with tf.name_scope("input"):
-            self.x_data = tf.placeholder(tf.float32, shape=[None, 135], name='x_data')
-            # 补位
-            input_data = tf.pad(self.x_data, [[0, 0], [0, 1]], 'CONSTANT')
-            with tf.name_scope("input_reshape"):
-                # 变形为可以和卷积核卷积的张量
-                input_data = tf.reshape(input_data, [-1, 17, 8, 1])
-                tf.summary.image("input", input_data, 1)
-            self.y_data = tf.placeholder(tf.float32, shape=[None], name='y_data')
+train_times = 10000
+base_path = "...BreadBasket/"
+save_path = base_path + str(train_times) + "/"
 
-        # ------------------------构建第一层网络---------------------
-        with tf.name_scope("hidden1"):
-            # 第一个卷积
-            with tf.name_scope("weights1"):
-                W_conv11 = weight_variable([3, 3, 1, 64])
-                variable_summaries(W_conv11, "W_conv11")
-            with tf.name_scope("biases1"):
-                b_conv11 = bias_variable([64])
-                variable_summaries(b_conv11, "b_conv11")
-            h_conv11 = tf.nn.relu(conv2(input_data, W_conv11) + b_conv11)
-            tf.summary.histogram('activations_h_conv11', h_conv11)
-            # 第二个卷积
-            with tf.name_scope("weights2"):
-                W_conv12 = weight_variable([3, 3, 64, 64])
-                variable_summaries(W_conv12, "W_conv12")
-            with tf.name_scope("biases2"):
-                b_conv12 = bias_variable([64])
-                variable_summaries(b_conv12, "b_conv12")
-            h_conv12 = tf.nn.relu(conv2(h_conv11, W_conv12) + b_conv12)
-            tf.summary.histogram('activations_h_conv11', h_conv12)
-            # 池化
-            h_pool1 = max_pool_2x2(h_conv12)
-            tf.summary.histogram('pools_h_pool1', h_pool1)
+# 读取数据
+BBDATA = read_datas('data/')
 
-        # ------------------------构建第二层网络---------------------
-        with tf.name_scope("hidden2"):
-            # 第一个卷积核
-            with tf.name_scope("weights1"):
-                W_conv21 = weight_variable([5, 5, 64, 128])
-                variable_summaries(W_conv21, 'W_conv21')
-            with tf.name_scope("biases1"):
-                b_conv21 = bias_variable([128])
-                variable_summaries(b_conv21, 'b_conv21')
-            h_conv21 = tf.nn.relu(conv2(h_pool1, W_conv21) + b_conv21)
-            tf.summary.histogram('activations_h_conv21', h_conv21)
-            # 第二个卷积核
-            with tf.name_scope("weights2"):
-                W_conv22 = weight_variable([5, 5, 128, 128])
-                variable_summaries(W_conv22, 'W_conv22')
-            with tf.name_scope("biases2"):
-                b_conv22 = bias_variable([128])
-                variable_summaries(b_conv22, 'b_conv22')
-            h_conv22 = tf.nn.relu(conv2(h_conv21, W_conv22) + b_conv22)
-            tf.summary.histogram('activations_h_conv22', h_conv22)
-            # 池化
-            self.h_pool2 = max_pool_2x2(h_conv22)
-            tf.summary.histogram('pools_h_pool2', self.h_pool2)
+# 创建网络
+network = CnnBreadBasketNetwork()
+x_data = network.x_data
+y_data = network.y_data
+y_conv = network.y_conv
 
-        shape_0 = self.h_pool2.get_shape()[1].value
-        print('shape_0 = ' + str(shape_0))
-        shape_1 = self.h_pool2.get_shape()[2].value
-        print('shape_1 = ' + str(shape_1))
-        h_pool2_flat = tf.reshape(self.h_pool2, [-1, shape_0 * shape_1 * 128])
+# ------------------------构建损失函数---------------------
+with tf.name_scope("cross_entropy"):
+    # 回归问题适合用平方方差MSE作为损失函数
+    cross_entropy = tf.reduce_mean(tf.square((y_conv - y_data)))
+    tf.summary.scalar('loss', cross_entropy)
+with tf.name_scope("train_step"):
+    # 使用 Adam 进行损失函数的梯度下降求解
+    train_step = tf.train.AdamOptimizer(0.0001).minimize(cross_entropy)
+# 记录平均差值
+with tf.name_scope("difference_value"):
+    dv = tf.reduce_mean(tf.abs(y_conv - y_data))
+    tf.summary.scalar('difference_value', cross_entropy)
 
-        # ------------------------ 构建第一层全链接层 ---------------------
-        with tf.name_scope("fc1"):
-            with tf.name_scope("weights"):
-                W_fc1 = weight_variable([shape_0 * shape_1 * 128, 4096])
-                variable_summaries(W_fc1, 'W_fc1')
-            with tf.name_scope("biases"):
-                b_fc1 = bias_variable([4096])
-                variable_summaries(b_fc1, 'b_fc1')
-            h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
-            tf.summary.histogram('activations_h_fc1', h_fc1)
+# ------------------------构建模型评估函数---------------------
+with tf.name_scope("accuracy"):
+    with tf.name_scope("correct_prediction"):
+        # 误差范围在 200 以内
+        correct_prediction = tf.less_equal(tf.abs(y_conv - y_data), 0.2)
+    with tf.name_scope("accuracy"):
+        # 计算准确率
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+tf.summary.scalar('accuracy', accuracy)
 
-        # ------------------------ 构建第二层全链接层 ---------------------
-        with tf.name_scope("fc2"):
-            with tf.name_scope("weights"):
-                W_fc2 = weight_variable([4096, 4096])
-                variable_summaries(W_fc2, 'W_fc2')
-            with tf.name_scope("biases"):
-                b_fc2 = bias_variable([4096])
-                variable_summaries(b_fc2, 'b_fc2')
-            h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
-            tf.summary.histogram('activations_h_fc2', h_fc2)
+# 创建会话
+sess = tf.InteractiveSession()
 
-        # ------------------------构建输出层---------------------
-        with tf.name_scope("output"):
-            with tf.name_scope("weights"):
-                W_out = weight_variable([4096, 1])
-                variable_summaries(W_out, 'W_out')
-            with tf.name_scope("biases"):
-                b_out = bias_variable([1])
-                variable_summaries(b_out, 'b_out')
-            # 注意⚠️，此处的激活函数已经替换成 ReLu 了
-            self.y_conv = tf.nn.relu(tf.matmul(h_fc2, W_out) + b_out)
-            tf.summary.histogram('activations_y_conv', self.y_conv)
+summary_merged = tf.summary.merge_all()
+train_writer = tf.summary.FileWriter(save_path + "graph/train", sess.graph)
+test_writer = tf.summary.FileWriter(save_path + "graph/test")
+
+start_time = int(round(time.time() * 1000))
+
+# 初始化参数
+sess.run(tf.initialize_all_variables())
+
+global loss
+loss = 0
+global train_accuracy
+for i in range(train_times):
+    # 从训练集中取出 50 个样本进行一波训练
+    batch = BBDATA.train_data.batch(50)
+
+    if i % 100 == 0:
+        summary, train_accuracy, test_loss, dv_value = sess.run([summary_merged, accuracy, cross_entropy, dv],
+                                           feed_dict={x_data: BBDATA.test_data.data, y_data: BBDATA.test_data.label})
+        test_writer.add_summary(summary, i)
+        consume_time = int(round(time.time() * 1000)) - start_time
+        print("当前共训练 " + str(i) + "次, 累计耗时：" + str(consume_time) + "ms，实时准确率为：%g" % (train_accuracy * 100.) + "%, "
+             + "当前误差均值：" + str(dv_value) + ", train_loss = " + str(loss) + ", test_loss = " + str(test_loss))
+    if i % 1000 == 0:
+        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata()
+        summary, _, loss = sess.run([summary_merged, train_step, cross_entropy],
+                              feed_dict={x_data: batch.data, y_data: batch.label}, options=run_options,
+                              run_metadata=run_metadata)
+        train_writer.add_run_metadata(run_metadata, str(i))
+        train_writer.add_summary(summary, i)
+    else:
+        summary, _, loss = sess.run([summary_merged, train_step, cross_entropy],
+                              feed_dict={x_data: batch.data, y_data: batch.label})
+        train_writer.add_summary(summary, i)
+
+    # 每训练 5000 次保存一次模型
+    if i != 0 and i % 5000 == 0:
+        test_accuracy, test_dv = sess.run([accuracy, dv], feed_dict={x_data: BBDATA.test_data.data, y_data: BBDATA.test_data.label})
+        save_model(base_path + str(i) + "_" + str(test_dv) + "/", sess, i)
+
+# 在测试集计算准确率
+summary, test_accuracy, test_dv = sess.run([summary_merged, accuracy, dv],
+                                  feed_dict={x_data: BBDATA.test_data.data, y_data: BBDATA.test_data.label})
+train_writer.add_summary(summary)
+print("测试集准确率：%g" % (test_accuracy) + ", 误差均值：" + str(test_dv))
+
+print("训练完成！")
+train_writer.close()
+test_writer.close()
+# 保存模型
+save_model(save_path, sess, train_times)

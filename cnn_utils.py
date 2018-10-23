@@ -9,7 +9,7 @@ def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.1)
     var = tf.Variable(initial)
     # 加入正则化
-    # tf.add_to_collection(tf.GraphKeys.WEIGHTS, var)
+    tf.add_to_collection(tf.GraphKeys.WEIGHTS, var)
     return var
 
 

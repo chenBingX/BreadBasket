@@ -66,6 +66,7 @@ class CnnBreadBasketNetwork:
         print('shape_1 = ' + str(shape_1))
         h_pool2_flat = tf.reshape(self.h_pool2, [-1, shape_0 * shape_1 * 128])
 
+        self.keep_prob = tf.placeholder(tf.float32)
         # ------------------------ 构建全链接层一 ---------------------
         with tf.name_scope("fc1"):
             with tf.name_scope("weights"):
@@ -76,6 +77,9 @@ class CnnBreadBasketNetwork:
                 variable_summaries(b_fc1, 'b_fc1')
             h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
             tf.summary.histogram('activations_h_fc1', h_fc1)
+        with tf.name_scope("dropout1"):
+            tf.summary.scalar('dropout_keep_probability1', self.keep_prob)
+            h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
 
         # ------------------------ 构建全链接层二 ---------------------
         with tf.name_scope("fc2"):
@@ -85,14 +89,11 @@ class CnnBreadBasketNetwork:
             with tf.name_scope("biases"):
                 b_fc2 = bias_variable([4096])
                 variable_summaries(b_fc2, 'b_fc2')
-            h_fc2 = tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
+            h_fc2 = tf.nn.relu(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
             tf.summary.histogram('activations_h_fc2', h_fc2)
-
-        # ------------------------添加Dropout减少过拟合---------------------
-        # with tf.name_scope("dropout"):
-        #     self.keep_prob = tf.placeholder(tf.float32)
-        #     tf.scalar_summary('dropout_keep_probability', self.keep_prob)
-        #     h_fc1_drop = tf.nn.dropout(h_fc1, self.keep_prob)
+        with tf.name_scope("dropout2"):
+            tf.summary.scalar('dropout_keep_probability2', self.keep_prob)
+            h_fc2_drop = tf.nn.dropout(h_fc2, self.keep_prob)
 
         # ------------------------构建输出层---------------------
         with tf.name_scope("output"):
@@ -102,5 +103,5 @@ class CnnBreadBasketNetwork:
             with tf.name_scope("biases"):
                 b_out = bias_variable([1])
                 variable_summaries(b_out, 'b_out')
-            self.y_conv = tf.nn.relu(tf.matmul(h_fc2, W_out) + b_out)
+            self.y_conv = tf.nn.relu(tf.matmul(h_fc2_drop, W_out) + b_out)
             tf.summary.histogram('activations_y_conv', self.y_conv)

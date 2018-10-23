@@ -13,7 +13,7 @@ def get_weekday(x):
 def get_float_time(x):
     date = datetime.datetime.strptime(x, '%Y-%m-%d')
     ftime = float(date.strftime('%Y%m%d'))
-    return ftime / 1e6
+    return ftime / 1e7
 
 
 def get_festival(x):
@@ -142,7 +142,7 @@ datas['Time_Quantum'] = datas['Time_Quantum'].map(lambda x: get_time_quantum(x))
 # 随着日期的增长，交易量在增长，所以日期的大小会影响交易量
 datas['Date'] = datas['Date'].map(lambda x: get_float_time(x))
 datas['Time'] = datas['Time'].map(lambda x: get_time_range(x))
-datas['Transaction'] = datas['Transaction'].map(lambda x: (float(x) / 1.))
+datas['Transaction'] = datas['Transaction'].map(lambda x: (float(x) / 1000.))
 datas.info()
 print(datas.head())
 
@@ -157,7 +157,7 @@ print(ont_hot_data.shape)
 print(ont_hot_data.head())
 
 
-print '--------------补齐---------------'
+# print '--------------补齐---------------'
 # null_count = 144 - ont_hot_data.shape[1] + 1
 # null_count = 1
 # for i in range(0, null_count):
