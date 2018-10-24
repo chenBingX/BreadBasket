@@ -3,8 +3,9 @@
 from BBDATA import *
 import tensorflow as tf
 from cnn_utils import save_model
+import matplotlib.pyplot as plt
 
-train_times = 130000
+train_times = 50000
 base_path = "/Users/coorchice/Desktop/ML/model/ml/BreadBasket/"
 save_path = base_path + str(train_times) + "/"
 
@@ -22,9 +23,10 @@ with tf.name_scope('loss'):
     cross_entropy = tf.reduce_mean((tf.square((y - y_data))))
 tf.summary.scalar('loss', cross_entropy)
 
-init_lr = 0.00001
-global_step = tf.Variable(0., trainable=False)
-lr = tf.train.exponential_decay(init_lr, global_step=global_step, decay_steps=10000, decay_rate=0.5, staircase=True)
+# init_lr = 0.00001
+lr = tf.Variable(0.00005, trainable=False)
+# global_step = tf.Variable(0., trainable=False)
+# lr = tf.train.exponential_decay(init_lr, global_step=global_step, decay_steps=10000, decay_rate=0.5, staircase=True)
 
 # 使用梯度下降法不断的调整变量，寻求最小的交叉熵
 # 此处使用梯度下降法以0.01的学习速率最小化交叉熵
@@ -44,7 +46,7 @@ tf.summary.scalar('dv', dv)
 # 创建初始化变量op
 init = tf.initialize_all_variables()
 
-add_global = global_step.assign_add(1)
+# add_global = global_step.assign_add(1)
 # 在session中启动初始化op，以初始化变量
 with tf.Session() as sess:
     merged = tf.summary.merge_all()
@@ -60,9 +62,18 @@ with tf.Session() as sess:
                                       feed_dict={x_data: BBDATA.test_data.data, y_data: BBDATA.test_data.label})
             print "训练次数：" + str(i) + ", 差值：" + str(dv_value) + ", train_loss = " + str(
                 loss2) + ', test_loss = ' + str(loss)
-        summary, train, loss2, _ = sess.run([merged, train_step, cross_entropy, add_global],
+        summary, train, loss2 = sess.run([merged, train_step, cross_entropy],
                                             feed_dict={x_data: batch.data, y_data: batch.label})
         train_writer.add_summary(summary, i)
+        if i == 10000:
+            lr = lr / 10000
+            print(sess.run(lr))
+        if i == 20000:
+            lr = lr / 1000
+            print(sess.run(lr))
+        if i == 30000:
+            lr = lr / 1000
+            print(sess.run(lr))
     # 启动检测函数，输入测试数据集
     dv_value = sess.run(dv, feed_dict={x_data: BBDATA.test_data.data, y_data: BBDATA.test_data.label})
     print "差值：" + str(dv_value) + ""
@@ -74,3 +85,4 @@ with tf.Session() as sess:
         r[0] - test_data.label.values)
     train_writer.close()
     save_model(save_path, sess, train_times)
+

@@ -3,6 +3,7 @@ import pandas as pd
 import tensorflow as tf
 import datetime
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def get_weekday(x):
@@ -10,10 +11,13 @@ def get_weekday(x):
     return str(date.weekday())
 
 
-def get_float_time(x):
+init_date = datetime.datetime.strptime('2016-10-30', '%Y-%m-%d')
+
+
+def get_delta_days(x):
     date = datetime.datetime.strptime(x, '%Y-%m-%d')
-    ftime = float(date.strftime('%Y%m%d'))
-    return ftime / 1e7
+    delta = date - init_date
+    return delta.days / 1000.
 
 
 def get_festival(x):
@@ -126,6 +130,22 @@ datas.info()
 # new_datas.drop('Item', axis=1, inplace=True)
 # print(new_datas.shape)
 
+
+print '--------------绘图---------------'
+plt.figure(1)
+plt.subplot(221)
+plt.plot(datas['Date'], datas['Transaction'], 'ro')
+plt.xlabel('Date')
+plt.ylabel('Transaction')
+plt.legend()
+
+# plt.subplot(222)
+# plt.plot(datas['Time'], datas['Transaction'], 'ro')
+# plt.xlabel('Time')
+# plt.ylabel('Transaction')
+# plt.legend()
+
+
 print '--------------处理数据类型转换---------------'
 # 挖掘，周几对交易量的影响
 datas['Weekday'] = datas['Date']
@@ -140,7 +160,7 @@ datas['Time_Quantum'] = datas['Time']
 datas['Time_Quantum'] = datas['Time_Quantum'].map(lambda x: get_time_quantum(x))
 
 # 随着日期的增长，交易量在增长，所以日期的大小会影响交易量
-datas['Date'] = datas['Date'].map(lambda x: get_float_time(x))
+datas['Date'] = datas['Date'].map(lambda x: get_delta_days(x))
 datas['Time'] = datas['Time'].map(lambda x: get_time_range(x))
 datas['Transaction'] = datas['Transaction'].map(lambda x: (float(x) / 1000.))
 datas.info()
@@ -148,13 +168,6 @@ print(datas.head())
 
 print '--------------One-Hot处理---------------'
 ont_hot_data = pd.get_dummies(datas, prefix=['Time', 'Item', 'Weekday', 'Festival', 'Time_Quantum'])
-print '--------------打乱顺序---------------'
-ont_hot_data = ont_hot_data.sample(frac=1, replace=False)
-ont_hot_data = ont_hot_data.sample(frac=1, replace=False)
-ont_hot_data = ont_hot_data.sample(frac=1, replace=False)
-print(ont_hot_data.shape)
-# -》 (21293, 136)
-print(ont_hot_data.head())
 
 
 # print '--------------补齐---------------'
@@ -168,16 +181,38 @@ print(ont_hot_data.head())
 # -》 (21293, 145)
 # print(ont_hot_data.head())
 
+
 # print '--------------归一化---------------'
-# cache_transaction = ont_hot_data['Transaction']
-# ont_hot_data.drop('Transaction', axis=1, inplace=True)
-# ont_hot_data = ont_hot_data.apply(lambda x: (x - np.min(x)) / (np.max(x) - np.min(x)))
-# ont_hot_data = pd.concat([ont_hot_data, cache_transaction], axis=1)
+# transaction_min = ont_hot_data['Transaction'].min()
+# transaction_max = ont_hot_data['Transaction'].max()
+# ont_hot_data['Transaction'] = ont_hot_data['Transaction'].map(
+#     lambda x: (x - transaction_min) / (transaction_max - transaction_min))
+#
+# date_min = ont_hot_data['Date'].min()
+# date_max = ont_hot_data['Date'].max()
+# ont_hot_data['Date'] = ont_hot_data['Date'].map(
+#     lambda x: (x - date_min) / (date_max - date_min))
+#
+#
 # print(ont_hot_data.head())
 
+print '--------------归一化绘图---------------'
+plt.subplot(222)
+plt.plot(ont_hot_data['Date'], ont_hot_data['Transaction'], 'ro')
+plt.xlabel('Date')
+plt.ylabel('Transaction')
+plt.legend()
+plt.show()
 # le_embarked = LabelEncoder()
 # le_embarked.fit(all_train_data['Item'])
 # all_train_data['Item'] = le_embarked.transform(all_train_data['Item'])
+
+print '--------------打乱顺序---------------'
+ont_hot_data = ont_hot_data.sample(frac=1, replace=False)
+ont_hot_data = ont_hot_data.sample(frac=1, replace=False)
+ont_hot_data = ont_hot_data.sample(frac=1, replace=False)
+# -》 (21293, 136)
+print(ont_hot_data.head())
 
 print '--------------保存新数据---------------'
 # 测试数据集大小
