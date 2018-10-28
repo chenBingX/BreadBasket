@@ -1,7 +1,7 @@
 # coding=utf-8
 
 from BBDATA import *
-import tensorflow as tf
+import tensorflow.python as tf
 from cnn_utils import save_model
 import matplotlib.pyplot as plt
 
@@ -21,7 +21,7 @@ y = tf.nn.relu(tf.matmul(x_data, W) + b)
 with tf.name_scope('loss'):
     # cross_entropy = -tf.reduce_sum(y_data * tf.log(y))
     cross_entropy = tf.reduce_mean((tf.square((y - y_data))))
-tf.summary.scalar('loss', cross_entropy)
+tf.scalar_summary('loss', cross_entropy)
 
 # init_lr = 0.00001
 lr = tf.Variable(0.00005, trainable=False)
@@ -38,7 +38,7 @@ train_step = tf.train.GradientDescentOptimizer(lr).minimize(cross_entropy)
 # dv = tf.reduce_mean(tf.reduce_sum(tf.abs(y - y_data)))
 with tf.name_scope('dv'):
     dv = tf.reduce_mean(tf.abs(y - y_data))
-tf.summary.scalar('dv', dv)
+tf.scalar_summary('dv', dv)
 
 # accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 # accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
@@ -49,8 +49,8 @@ init = tf.initialize_all_variables()
 # add_global = global_step.assign_add(1)
 # 在session中启动初始化op，以初始化变量
 with tf.Session() as sess:
-    merged = tf.summary.merge_all()
-    train_writer = tf.summary.FileWriter('graph', sess.graph)
+    merged = tf.merge_all_summaries()
+    train_writer = tf.train.SummaryWriter('graph', sess.graph)
 
     sess.run(init)
     global loss2

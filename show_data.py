@@ -5,7 +5,6 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def get_weekday(x):
     date = datetime.datetime.strptime(x, '%Y-%m-%d')
     return str(date.weekday())
@@ -131,13 +130,13 @@ datas.info()
 # print(new_datas.shape)
 
 
-print '--------------绘图---------------'
-plt.figure(1)
-plt.subplot(221)
-plt.plot(datas['Date'], datas['Transaction'], 'ro')
-plt.xlabel('Date')
-plt.ylabel('Transaction')
-plt.legend()
+# print '--------------绘图---------------'
+# plt.figure(1)
+# plt.subplot(221)
+# plt.plot(datas['Date'], datas['Transaction'], 'ro')
+# plt.xlabel('Date')
+# plt.ylabel('Transaction')
+# plt.legend()
 
 # plt.subplot(222)
 # plt.plot(datas['Time'], datas['Transaction'], 'ro')
@@ -168,6 +167,7 @@ print(datas.head())
 
 print '--------------One-Hot处理---------------'
 ont_hot_data = pd.get_dummies(datas, prefix=['Time', 'Item', 'Weekday', 'Festival', 'Time_Quantum'])
+print(ont_hot_data.head())
 
 
 # print '--------------补齐---------------'
@@ -197,6 +197,7 @@ ont_hot_data = pd.get_dummies(datas, prefix=['Time', 'Item', 'Weekday', 'Festiva
 # print(ont_hot_data.head())
 
 print '--------------归一化绘图---------------'
+plt.figure(1)
 plt.subplot(222)
 plt.plot(ont_hot_data['Date'], ont_hot_data['Transaction'], 'ro')
 plt.xlabel('Date')
